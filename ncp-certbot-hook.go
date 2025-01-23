@@ -30,6 +30,7 @@ import (
 type Config struct {
 	AccessKey string `json:"access_key"`
 	SecretKey string `json:"secret_key"`
+	SleepTime int    `json:"sleep_time"`
 }
 
 type RecordRequest struct {
@@ -139,7 +140,7 @@ func addTXTRecord(cfg *Config, domain, value string) error {
 
 	log.Printf("TXT 레코드 생성 성공: domain=%s, content=%s\n응답: %#v", domain, value, result)
 
-	time.Sleep(60 * time.Second)
+	time.Sleep(time.Duration(cfg.SleepTime) * time.Second)
 
 	return nil
 }

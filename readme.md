@@ -67,12 +67,14 @@ You can specify a custom path with the `-config` flag.
 ```json
 {
   "access_key": "YOUR_NCP_ACCESS_KEY",
-  "secret_key": "YOUR_NCP_SECRET_KEY"
+  "secret_key": "YOUR_NCP_SECRET_KEY",
+  "sleep_time": 30
 }
 ```
 
 - **access_key**: Your NCP Access Key  
 - **secret_key**: Your NCP Secret Key  
+- **sleep_time**: The duration (in seconds) to pause the execution after adding a DNS record to ensure the record is propagated and recognized across the DNS network before proceeding with the next steps. This helps prevent potential timing issues during DNS validation.
 
 ### Permissions
 

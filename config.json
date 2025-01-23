@@ -1,4 +1,5 @@
 {
     "access_key": "YOUR_NCP_ACCESS_KEY",
-    "secret_key": "YOUR_NCP_SECRET_KEY"
+    "secret_key": "YOUR_NCP_SECRET_KEY",
+    "sleep_time": 30
 }
