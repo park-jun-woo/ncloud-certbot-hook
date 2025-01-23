@@ -67,8 +67,7 @@ You can specify a custom path with the `-config` flag.
 ```json
 {
   "access_key": "YOUR_NCP_ACCESS_KEY",
-  "secret_key": "YOUR_NCP_SECRET_KEY",
-  "region": "YOUR_NCP_REGION"
+  "secret_key": "YOUR_NCP_SECRET_KEY"
 }
 ```
 
