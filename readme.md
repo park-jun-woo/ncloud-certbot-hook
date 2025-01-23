@@ -73,7 +73,6 @@ You can specify a custom path with the `-config` flag.
 
 - **access_key**: Your NCP Access Key  
 - **secret_key**: Your NCP Secret Key  
-- **region**: NCP region (optional if not used by your code)
 
 ### Permissions
 
