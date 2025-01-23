@@ -207,7 +207,7 @@ func deleteTXTRecord(cfg *Config, domain, value string) error {
 	// (4) 레코드 삭제
 	delMethod := "DELETE"
 	delUri := fmt.Sprintf("/dns/v1/zone/%s/record/%s", zoneID, targetRecordId)
-	delEndpoint := "https://ncloud.apigw.ntruss.com" + delUri
+	delEndpoint := "https://globaldns.apigw.ntruss.com" + delUri
 
 	delReq, err := http.NewRequest(delMethod, delEndpoint, nil)
 	if err != nil {
@@ -343,7 +343,7 @@ func setNcpApiHeaders(cfg *Config, req *http.Request, method, uri string) error 
 func findZone(cfg *Config, domain string) (string, error) {
 	method := "GET"
 	uri := "/dns/v1/zone"
-	endpoint := "https://ncloud.apigw.ntruss.com" + uri
+	endpoint := "https://globaldns.apigw.ntruss.com" + uri
 
 	req, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
