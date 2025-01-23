@@ -99,7 +99,7 @@ func addTXTRecord(cfg *Config, domain, value string) error {
 	// (2) TXT 레코드 생성
 	method := "POST"
 	uri := fmt.Sprintf("/dns/v1/zone/%s/record", zoneID)
-	endpoint := "https://ncloud.apigw.ntruss.com" + uri
+	endpoint := "https://globaldns.apigw.ntruss.com" + uri
 
 	// DNS-01 인증 시, 실제 사용 환경에 맞춰 이름을 "_acme-challenge.<domain>"로 바꿔야 할 수도 있음.
 	reqBody := RecordRequest{
@@ -161,7 +161,7 @@ func deleteTXTRecord(cfg *Config, domain, value string) error {
 	// (2) TXT 레코드 목록 조회
 	method := "GET"
 	uri := fmt.Sprintf("/dns/v1/zone/%s/record?recordType=TXT", zoneID)
-	endpoint := "https://ncloud.apigw.ntruss.com" + uri
+	endpoint := "https://globaldns.apigw.ntruss.com" + uri
 
 	req, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
@@ -279,7 +279,7 @@ func registerCertificate(cfg *Config, domain, certPath, keyPath string) (string,
 	//     POST /certificate/v1/certificates
 	method := "POST"
 	uri := "/certificate/v1/certificates"
-	endpoint := "https://ncloud.apigw.ntruss.com" + uri
+	endpoint := "https://certificatemanager.apigw.ntruss.com" + uri
 
 	httpReq, err := http.NewRequest(method, endpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
