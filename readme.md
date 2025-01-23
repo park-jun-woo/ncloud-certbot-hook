@@ -1,6 +1,6 @@
-# ncp-certbot-hook
+# ncloud-certbot-hook
 
-**ncp-certbot-hook** is a Go-based Certbot hook (for DNS-01 challenges) designed to integrate with [Naver Cloud Platform (NCP)](https://www.ncloud.com/) services. It automatically creates and deletes TXT records in **NCP Global DNS** for domain verification, and registers the issued SSL certificates in **NCP Certificate Manager** after successful issuance/renewal.
+**ncloud-certbot-hook** is a Go-based Certbot hook (for DNS-01 challenges) designed to integrate with [Naver Cloud Platform (NCP)](https://www.ncloud.com/) services. It automatically creates and deletes TXT records in **NCP Global DNS** for domain verification, and registers the issued SSL certificates in **NCP Certificate Manager** after successful issuance/renewal.
 
 ## Features
 
@@ -37,26 +37,26 @@
 
 1. **Clone or Download** the repository:
    ```bash
-   git clone https://github.com/park-jun-woo/ncp-certbot-hook.git
-   cd ncp-certbot-hook
+   git clone https://github.com/park-jun-woo/ncloud-certbot-hook.git
+   cd ncloud-certbot-hook
    ```
 
 2. **Build** the binary:
    ```bash
-   go build -o ncp-certbot-hook ncp-certbot-hook.go
+   go build -o ncloud-certbot-hook ncloud-certbot-hook.go
    ```
-   This produces the executable **ncp-certbot-hook**.
+   This produces the executable **ncloud-certbot-hook**.
 
 3. **Move** the binary to a system-wide location (optional):
    ```bash
-   sudo mv ncp-certbot-hook /usr/local/bin/
-   sudo chmod +x /usr/local/bin/ncp-certbot-hook
+   sudo mv ncloud-certbot-hook /usr/local/bin/
+   sudo chmod +x /usr/local/bin/ncloud-certbot-hook
    ```
-   Now you can run `ncp-certbot-hook` from anywhere.
+   Now you can run `ncloud-certbot-hook` from anywhere.
 
 ## Configuration
 
-By default, **ncp-certbot-hook** looks for a config file under:  
+By default, **ncloud-certbot-hook** looks for a config file under:  
 ```
 /etc/certhook/config.json
 ```
@@ -93,16 +93,16 @@ sudo chmod 600 /etc/certhook/config.json
 sudo certbot certonly \
   --manual \
   --preferred-challenges dns \
-  --manual-auth-hook "/usr/local/bin/ncp-certbot-hook --hook=auth" \
-  --manual-cleanup-hook "/usr/local/bin/ncp-certbot-hook --hook=cleanup" \
-  --deploy-hook "/usr/local/bin/ncp-certbot-hook --hook=deploy" \
+  --manual-auth-hook "/usr/local/bin/ncloud-certbot-hook --hook=auth" \
+  --manual-cleanup-hook "/usr/local/bin/ncloud-certbot-hook --hook=cleanup" \
+  --deploy-hook "/usr/local/bin/ncloud-certbot-hook --hook=deploy" \
   --non-interactive --agree-tos --manual-public-ip-logging-ok \
   -d example.com
 ```
 
-- `--manual-auth-hook`: Invokes **ncp-certbot-hook** with `--hook=auth`, which creates a TXT record in NCP Global DNS.  
+- `--manual-auth-hook`: Invokes **ncloud-certbot-hook** with `--hook=auth`, which creates a TXT record in NCP Global DNS.  
 - `--manual-cleanup-hook`: Deletes the TXT record after the domain verification step.  
-- `--deploy-hook`: Once the certificate is successfully issued, **ncp-certbot-hook** uploads it to NCP Certificate Manager.  
+- `--deploy-hook`: Once the certificate is successfully issued, **ncloud-certbot-hook** uploads it to NCP Certificate Manager.  
 
 Make sure the **paths** match your actual binary location and that your **config file** is set correctly.
 
@@ -110,7 +110,7 @@ Make sure the **paths** match your actual binary location and that your **config
 
 - **Check configuration**:
   ```bash
-  ncp-certbot-hook -config /etc/certhook/config.json --hook=auth
+  ncloud-certbot-hook -config /etc/certhook/config.json --hook=auth
   ```
   (It will likely exit with an error if it’s missing environment variables from Certbot, but you can confirm that it can load config and run.)
 
@@ -119,9 +119,9 @@ Make sure the **paths** match your actual binary location and that your **config
   sudo certbot certonly \
     --manual \
     --preferred-challenges dns \
-    --manual-auth-hook "/usr/local/bin/ncp-certbot-hook --hook=auth" \
-    --manual-cleanup-hook "/usr/local/bin/ncp-certbot-hook --hook=cleanup" \
-    --deploy-hook "/usr/local/bin/ncp-certbot-hook --hook=deploy" \
+    --manual-auth-hook "/usr/local/bin/ncloud-certbot-hook --hook=auth" \
+    --manual-cleanup-hook "/usr/local/bin/ncloud-certbot-hook --hook=cleanup" \
+    --deploy-hook "/usr/local/bin/ncloud-certbot-hook --hook=deploy" \
     -d yourdomain.com -d www.yourdomain.com
   ```
   Follow any on-screen instructions if necessary (`--non-interactive` can skip user prompts).
@@ -134,11 +134,11 @@ Make sure the **paths** match your actual binary location and that your **config
 
 ## License
 
-**ncp-certbot-hook** is released under the [MIT License](LICENSE).  
+**ncloud-certbot-hook** is released under the [MIT License](LICENSE).  
 See the `LICENSE` file for full license terms.
 
 ---
 
 ### Feedback & Contributions
 
-Feel free to open [issues](https://github.com/park-jun-woo/ncp-certbot-hook/issues) or submit [pull requests](https://github.com/park-jun-woo/ncp-certbot-hook/pulls) if you encounter bugs or want to add new features. We welcome all contributions!
+Feel free to open [issues](https://github.com/park-jun-woo/ncloud-certbot-hook/issues) or submit [pull requests](https://github.com/park-jun-woo/ncloud-certbot-hook/pulls) if you encounter bugs or want to add new features. We welcome all contributions!

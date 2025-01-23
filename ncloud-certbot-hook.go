@@ -1,5 +1,5 @@
 /*
-ncp-certbot-hook
+ncloud-certbot-hook
 Certbot DNS-01 Hook for Naver Cloud Platform
 
 Copyright (c) 2023 [Your Name]
@@ -11,20 +11,15 @@ See the LICENSE file in the project root for details.
 package main
 
 import (
-	"bytes"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"strconv"
 	"strings"
-	"time"
+
+	"3il.app/ncloud"
+	"3il.app/ncloud-certbot-hook/hook"
 )
 
 type Config struct {
@@ -33,11 +28,107 @@ type Config struct {
 	SleepTime int    `json:"sleep_time"`
 }
 
+// loadConfig: .config 파일에서 NCP 액세스 정보를 불러옴
+func LoadConfig(filename string) (*Config, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var cfg Config
+	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func main() {
+	// --hook 플래그 설정 (예: --hook=auth, --hook=cleanup, --hook=deploy)
+	var hookType string
+	flag.StringVar(&hookType, "hook", "", "Hook type to run (auth|cleanup|deploy)")
+
+	// .config 파일 경로 지정(기본값: /etc/certhook/config.json)
+	configFile := flag.String("config", "/etc/certhook/config.json", "NCP config file path")
+
+	flag.Parse()
+
+	// 설정 파일 로드
+	cfg, err := LoadConfig(*configFile)
+	if err != nil {
+		log.Fatalf("설정 파일 로드 실패: %v", err)
+	}
+
+	access := &ncloud.Access{
+		AccessKey: cfg.AccessKey,
+		SecretKey: cfg.SecretKey,
+	}
+
+	// Certbot에서 넘겨주는 환경 변수
+	// - DNS-01 인증 시:
+	//   CERTBOT_DOMAIN, CERTBOT_VALIDATION
+	// - 인증서 발급/갱신 후 (deploy-hook):
+	//   CERTBOT_DOMAIN, CERTBOT_CERT_PATH, CERTBOT_KEY_PATH, CERTBOT_FULLCHAIN_PATH, etc.
+	domain := os.Getenv("CERTBOT_DOMAIN")
+	validation := os.Getenv("CERTBOT_VALIDATION")
+	certPath := os.Getenv("CERTBOT_CERT_PATH") // 전체 인증서(leaf cert)
+	keyPath := os.Getenv("CERTBOT_KEY_PATH")   // 프라이빗 키
+
+	// hookType 에 따라 분기
+	switch strings.ToLower(hookType) {
+	case "auth":
+		// 1) DNS-01 검증을 위해 TXT 레코드 등록
+		if domain == "" || validation == "" {
+			log.Println("[Error] auth-hook: CERTBOT_DOMAIN 또는 CERTBOT_VALIDATION이 비어있습니다.")
+			os.Exit(1)
+		}
+		log.Println("[Info] Running auth-hook...")
+		err := hook.Auth(access, cfg.SleepTime, domain, validation)
+		if err != nil {
+			log.Fatalf("TXT 레코드 생성 실패: %v", err)
+		}
+		log.Println("[Info] auth-hook 완료")
+
+	case "cleanup":
+		// 2) DNS 검증이 끝난 후 TXT 레코드 삭제
+		if domain == "" || validation == "" {
+			log.Println("[Error] cleanup-hook: CERTBOT_DOMAIN 또는 CERTBOT_VALIDATION이 비어있습니다.")
+			os.Exit(1)
+		}
+		log.Println("[Info] Running cleanup-hook...")
+		err := hook.Cleanup(access, domain, validation)
+		if err != nil {
+			log.Fatalf("TXT 레코드 삭제 실패: %v", err)
+		}
+		log.Println("[Info] cleanup-hook 완료")
+
+	case "deploy":
+		// 3) 인증서가 발급/갱신된 후 -> NCP Certificate Manager에 등록
+		if domain == "" || certPath == "" || keyPath == "" {
+			log.Println("[Error] deploy-hook: CERTBOT_DOMAIN, CERTBOT_CERT_PATH 또는 CERTBOT_KEY_PATH가 비어있습니다.")
+			os.Exit(1)
+		}
+		log.Println("[Info] Running deploy-hook...")
+		certNo, err := hook.Deploy(access, domain, certPath, keyPath)
+		if err != nil {
+			log.Fatalf("NCP Certificate Manager 등록 실패: %v", err)
+		}
+		fmt.Printf("NCP Certificate No: %d\n", certNo)
+		log.Println("[Info] deploy-hook 완료")
+
+	default:
+		log.Fatalf("Unknown or missing --hook value: %s (must be one of: auth, cleanup, deploy)", hookType)
+	}
+}
+
+/*
 type RecordRequest struct {
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Content string `json:"content"`
-	TTL     int    `json:"ttl"`
+	Host    string  `json:"host"`
+	Type    string  `json:"type"`
+	Content string  `json:"content"`
+	TTL     int     `json:"ttl"`
+	AliasId *string `json:"aliasId,omitempty"`
+	LbId    *string `json:"lbId,omitempty"`
 }
 
 type RecordItem struct {
@@ -69,23 +160,8 @@ type createCertificateResponse struct {
 	// 필요 시 다른 필드 추가
 }
 
-// loadConfig: .config 파일에서 NCP 액세스 정보를 불러옴
-func loadConfig(filename string) (*Config, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	var cfg Config
-	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
-}
-
 // addTXTRecord: NCP Global DNS에 TXT 레코드 등록 (Stub)
-func addTXTRecord(cfg *Config, domain, value string) error {
+func addTXTRecord(cfg *Config.Config, domain, value string) error {
 	// (1) domain 에 해당하는 Zone ID 찾기
 	zoneID, err := findZone(cfg, domain)
 	if err != nil {
@@ -98,18 +174,24 @@ func addTXTRecord(cfg *Config, domain, value string) error {
 
 	// (2) TXT 레코드 생성
 	method := "POST"
-	uri := fmt.Sprintf("/dns/v1/zone/%s/record", zoneID)
-	endpoint := "https://globaldns.apigw.ntruss.com" + uri
+	uri := fmt.Sprintf("/ncpdns/record/%s", zoneID)
+	endpoint := "https://globaldns.apigw.ntruss.com/dns/v1" + uri
 
-	// DNS-01 인증 시, 실제 사용 환경에 맞춰 이름을 "_acme-challenge.<domain>"로 바꿔야 할 수도 있음.
-	reqBody := RecordRequest{
-		Name:    domain,
-		Type:    "TXT",
-		Content: value,
-		TTL:     300,
+	// 요청 바디 생성 (배열 형식)
+	reqBody := []RecordRequest{
+		{
+			Host:    "_acme-challenge." + domain, // DNS-01 인증을 위한 이름
+			Type:    "TXT",
+			Content: value,
+			TTL:     300,
+		},
 	}
 
-	bodyBytes, _ := json.Marshal(reqBody)
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("JSON 마샬링 실패: %v", err)
+	}
+
 	req, err := http.NewRequest(method, endpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("HTTP 요청 생성 실패: %v", err)
@@ -140,6 +222,7 @@ func addTXTRecord(cfg *Config, domain, value string) error {
 
 	log.Printf("TXT 레코드 생성 성공: domain=%s, content=%s\n응답: %#v", domain, value, result)
 
+	// 설정된 대기 시간만큼 대기
 	time.Sleep(time.Duration(cfg.SleepTime) * time.Second)
 
 	return nil
@@ -160,8 +243,8 @@ func deleteTXTRecord(cfg *Config, domain, value string) error {
 
 	// (2) TXT 레코드 목록 조회
 	method := "GET"
-	uri := fmt.Sprintf("/dns/v1/zone/%s/record?recordType=TXT", zoneID)
-	endpoint := "https://globaldns.apigw.ntruss.com" + uri
+	uri := fmt.Sprintf("/ncpdns/record/%s", zoneID)
+	endpoint := "https://globaldns.apigw.ntruss.com/dns/v1" + uri
 
 	req, err := http.NewRequest(method, endpoint, nil)
 	if err != nil {
@@ -183,16 +266,24 @@ func deleteTXTRecord(cfg *Config, domain, value string) error {
 		return fmt.Errorf("TXT 레코드 목록 조회 실패 (status=%d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	var listResp ListRecordsResponse
+	var listResp struct {
+		Content []struct {
+			RecordId string `json:"id"`
+			Host     string `json:"host"`
+			Type     string `json:"type"`
+			Content  string `json:"content"`
+		} `json:"content"`
+	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
 		return fmt.Errorf("JSON 디코드 실패: %v", err)
 	}
 
-	// (3) domain(또는 '_acme-challenge.domain') & value가 일치하는 레코드 검색
+	// (3) '_acme-challenge.<domain>' & value가 일치하는 레코드 검색
 	var targetRecordId string
 	for _, r := range listResp.Content {
 		if r.Type == "TXT" &&
-			r.Name == domain && // 여기서 r.Name이 실제로 '_acme-challenge.domain.com' 일 수도 있음
+			r.Host == "_acme-challenge."+domain &&
 			r.Content == value {
 			targetRecordId = r.RecordId
 			break
@@ -204,15 +295,24 @@ func deleteTXTRecord(cfg *Config, domain, value string) error {
 		return nil // 찾지 못했으면 단순 스킵 or 에러 반환도 가능
 	}
 
-	// (4) 레코드 삭제
+	// (4) 레코드 삭제 요청 (DELETE로 삭제)
 	delMethod := "DELETE"
-	delUri := fmt.Sprintf("/dns/v1/zone/%s/record/%s", zoneID, targetRecordId)
-	delEndpoint := "https://globaldns.apigw.ntruss.com" + delUri
+	delUri := fmt.Sprintf("/ncpdns/record/%s", zoneID)
+	delEndpoint := "https://globaldns.apigw.ntruss.com/dns/v1" + delUri
 
-	delReq, err := http.NewRequest(delMethod, delEndpoint, nil)
+	// 요청 바디에 삭제할 레코드 ID를 배열로 포함
+	reqBody := []string{targetRecordId}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("JSON 마샬링 실패: %v", err)
+	}
+
+	delReq, err := http.NewRequest(delMethod, delEndpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("레코드 삭제 요청 실패: %v", err)
 	}
+	delReq.Header.Set("Content-Type", "application/json")
 	if err := setNcpApiHeaders(cfg, delReq, delMethod, delUri); err != nil {
 		return err
 	}
@@ -278,8 +378,8 @@ func registerCertificate(cfg *Config, domain, certPath, keyPath string) (string,
 	//     실제 엔드포인트는 문서(https://api.ncloud-docs.com/docs/en/certificate-manager-certificate) 기준
 	//     POST /certificate/v1/certificates
 	method := "POST"
-	uri := "/certificate/v1/certificates"
-	endpoint := "https://certificatemanager.apigw.ntruss.com" + uri
+	uri := "	/certificate/withExternal"
+	endpoint := "https://certificatemanager.apigw.ntruss.com/api/v1" + uri
 
 	httpReq, err := http.NewRequest(method, endpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
@@ -321,143 +421,4 @@ func registerCertificate(cfg *Config, domain, certPath, keyPath string) (string,
 	// (7) certificateNo 문자열로 반환
 	return certNoStr, nil
 }
-
-func setNcpApiHeaders(cfg *Config, req *http.Request, method, uri string) error {
-	timestamp := strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10)
-	accessKey := cfg.AccessKey
-	secretKey := cfg.SecretKey
-
-	// message = "{method} {path}\n{timestamp}\n{accessKey}"
-	message := fmt.Sprintf("%s %s\n%s\n%s", method, uri, timestamp, accessKey)
-	mac := hmac.New(sha256.New, []byte(secretKey))
-	mac.Write([]byte(message))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-
-	req.Header.Set("x-ncp-apigw-timestamp", timestamp)
-	req.Header.Set("x-ncp-apigw-api-key", accessKey)
-	req.Header.Set("x-ncp-apigw-signature-v2", signature)
-
-	return nil
-}
-
-func findZone(cfg *Config, domain string) (string, error) {
-	method := "GET"
-	uri := "/dns/v1/zone"
-	endpoint := "https://globaldns.apigw.ntruss.com" + uri
-
-	req, err := http.NewRequest(method, endpoint, nil)
-	if err != nil {
-		return "", fmt.Errorf("HTTP 요청 생성 실패: %v", err)
-	}
-	if err := setNcpApiHeaders(cfg, req, method, uri); err != nil {
-		return "", err
-	}
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("HTTP 요청 실패: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("존 목록 조회 실패 (status=%d): %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var listResp struct {
-		Total   int `json:"totalElements"`
-		Content []struct {
-			ZoneId string `json:"zoneId"`
-			Name   string `json:"name"`
-			Status string `json:"status"`
-		} `json:"content"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
-		return "", fmt.Errorf("JSON 디코드 실패: %v", err)
-	}
-
-	// domain == zone.Name(예: "example.com")이 일치하는 Zone 찾기
-	for _, z := range listResp.Content {
-		if z.Name == domain {
-			return z.ZoneId, nil
-		}
-	}
-
-	// 찾지 못하면 빈 문자열 반환
-	return "", nil
-}
-
-func main() {
-	// --hook 플래그 설정 (예: --hook=auth, --hook=cleanup, --hook=deploy)
-	var hookType string
-	flag.StringVar(&hookType, "hook", "", "Hook type to run (auth|cleanup|deploy)")
-
-	// .config 파일 경로 지정(기본값: /etc/certhook/config.json)
-	configFile := flag.String("config", "/etc/certhook/config.json", "NCP config file path")
-
-	flag.Parse()
-
-	// 설정 파일 로드
-	cfg, err := loadConfig(*configFile)
-	if err != nil {
-		log.Fatalf("설정 파일 로드 실패: %v", err)
-	}
-
-	// Certbot에서 넘겨주는 환경 변수
-	// - DNS-01 인증 시:
-	//   CERTBOT_DOMAIN, CERTBOT_VALIDATION
-	// - 인증서 발급/갱신 후 (deploy-hook):
-	//   CERTBOT_DOMAIN, CERTBOT_CERT_PATH, CERTBOT_KEY_PATH, CERTBOT_FULLCHAIN_PATH, etc.
-	domain := os.Getenv("CERTBOT_DOMAIN")
-	validation := os.Getenv("CERTBOT_VALIDATION")
-	certPath := os.Getenv("CERTBOT_CERT_PATH") // 전체 인증서(leaf cert)
-	keyPath := os.Getenv("CERTBOT_KEY_PATH")   // 프라이빗 키
-
-	// hookType 에 따라 분기
-	switch strings.ToLower(hookType) {
-	case "auth":
-		// 1) DNS-01 검증을 위해 TXT 레코드 등록
-		if domain == "" || validation == "" {
-			log.Println("[Error] auth-hook인데 CERTBOT_DOMAIN 또는 CERTBOT_VALIDATION이 비어있습니다.")
-			os.Exit(1)
-		}
-		log.Println("[Info] Running auth-hook...")
-		err := addTXTRecord(cfg, domain, validation)
-		if err != nil {
-			log.Fatalf("TXT 레코드 생성 실패: %v", err)
-		}
-		log.Println("[Info] auth-hook 완료")
-
-	case "cleanup":
-		// 2) DNS 검증이 끝난 후 TXT 레코드 삭제
-		if domain == "" || validation == "" {
-			log.Println("[Error] cleanup-hook인데 CERTBOT_DOMAIN 또는 CERTBOT_VALIDATION이 비어있습니다.")
-			os.Exit(1)
-		}
-		log.Println("[Info] Running cleanup-hook...")
-		err := deleteTXTRecord(cfg, domain, validation)
-		if err != nil {
-			log.Fatalf("TXT 레코드 삭제 실패: %v", err)
-		}
-		log.Println("[Info] cleanup-hook 완료")
-
-	case "deploy":
-		// 3) 인증서가 발급/갱신된 후 -> NCP Certificate Manager에 등록
-		if domain == "" || certPath == "" || keyPath == "" {
-			log.Println("[Error] deploy-hook인데 CERTBOT_DOMAIN, CERTBOT_CERT_PATH 또는 CERTBOT_KEY_PATH가 비어있습니다.")
-			os.Exit(1)
-		}
-		log.Println("[Info] Running deploy-hook...")
-		certNo, err := registerCertificate(cfg, domain, certPath, keyPath)
-		if err != nil {
-			log.Fatalf("NCP Certificate Manager 등록 실패: %v", err)
-		}
-		fmt.Printf("NCP Certificate No: %s\n", certNo)
-		log.Println("[Info] deploy-hook 완료")
-
-	default:
-		log.Fatalf("Unknown or missing --hook value: %s (must be one of: auth, cleanup, deploy)", hookType)
-	}
-}
+*/
