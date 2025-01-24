@@ -35,35 +35,31 @@
 
 ## Installation
 
-1. **Clone or Download** the repository:
+1. **Clone the Repository**:
    ```bash
    git clone https://github.com/park-jun-woo/ncloud-certbot-hook.git
    cd ncloud-certbot-hook
    ```
 
-2. **Build** the binary:
+2. **Build and Install**:
+   Run the following command:
    ```bash
-   go build -o ncloud-certbot-hook ncloud-certbot-hook.go
+   make
    ```
-   This produces the executable **ncloud-certbot-hook**.
-
-3. **Move** the binary to a system-wide location (optional):
-   ```bash
-   sudo mv ncloud-certbot-hook /usr/local/bin/
-   sudo chmod +x /usr/local/bin/ncloud-certbot-hook
-   ```
-   Now you can run `ncloud-certbot-hook` from anywhere.
+   This will:
+   - Build the binary using `go build`.
+   - Move the binary to `/usr/local/bin/`.
+   - Install and update required CA certificates.
+   - Create a configuration file at `/etc/ncloud-certbot-hook/config.json` (if it does not exist).
 
 ## Configuration
 
-By default, **ncloud-certbot-hook** looks for a config file under:  
-```
-/etc/ncloud-certbot-hook/config.json
-```
-You can specify a custom path with the `-config` flag.
+Configuration is handled during the `make` process. It will:
 
-### config.json Format
+- Prompt you to input your `NCP Access Key` and `Secret Key`.
+- Generate a configuration file at `/etc/ncloud-certbot-hook/config.json`.
 
+The resulting `config.json` will look like this:
 ```json
 {
   "access_key": "YOUR_NCP_ACCESS_KEY",
@@ -71,6 +67,17 @@ You can specify a custom path with the `-config` flag.
   "root_ca_path": "/etc/ssl/certs/ISRG_Root_X1.pem",
   "sleep_time": 30
 }
+```
+
+Make sure only the user running Certbot can read this file:
+```bash
+sudo chown root:root /etc/ncloud-certbot-hook/config.json
+sudo chmod 600 /etc/ncloud-certbot-hook/config.json
+```
+
+If you need to reconfigure the settings, run:
+```bash
+make config
 ```
 
 - **access_key**: Your NCP Access Key  
