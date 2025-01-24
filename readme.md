@@ -37,7 +37,7 @@
 
 1. **Clone or Download** the repository:
    ```bash
-   git clone https://parkjunwoo.com/ncloud-certbot-hook.git
+   git clone https://github.com/park-jun-woo/ncloud-certbot-hook.git
    cd ncloud-certbot-hook
    ```
 
@@ -58,7 +58,7 @@
 
 By default, **ncloud-certbot-hook** looks for a config file under:  
 ```
-/etc/certhook/config.json
+/etc/ncloud-certbot-hook/config.json
 ```
 You can specify a custom path with the `-config` flag.
 
@@ -68,20 +68,27 @@ You can specify a custom path with the `-config` flag.
 {
   "access_key": "YOUR_NCP_ACCESS_KEY",
   "secret_key": "YOUR_NCP_SECRET_KEY",
+  "root_ca_path": "/etc/ssl/certs/ISRG_Root_X1.pem",
   "sleep_time": 30
 }
 ```
 
 - **access_key**: Your NCP Access Key  
 - **secret_key**: Your NCP Secret Key  
+- **root_ca_path**: Path to the Let's Encrypt Root CA file. This file ensures secure communication with Let's Encrypt's services.
+  ```bash
+  sudo apt update
+  sudo apt install ca-certificates
+  sudo update-ca-certificates
+  ```
 - **sleep_time**: The duration (in seconds) to pause the execution after adding a DNS record to ensure the record is propagated and recognized across the DNS network before proceeding with the next steps. This helps prevent potential timing issues during DNS validation.
 
 ### Permissions
 
 Make sure only the user running Certbot can read this file:
 ```bash
-sudo chown root:root /etc/certhook/config.json
-sudo chmod 600 /etc/certhook/config.json
+sudo chown root:root /etc/ncloud-certbot-hook/config.json
+sudo chmod 600 /etc/ncloud-certbot-hook/config.json
 ```
 
 ## Usage with Certbot
@@ -110,7 +117,7 @@ Make sure the **paths** match your actual binary location and that your **config
 
 - **Check configuration**:
   ```bash
-  ncloud-certbot-hook -config /etc/certhook/config.json --hook=auth
+  ncloud-certbot-hook -config /etc/ncloud-certbot-hook/config.json --hook=auth
   ```
   (It will likely exit with an error if it’s missing environment variables from Certbot, but you can confirm that it can load config and run.)
 

@@ -50,8 +50,8 @@ func main() {
 	var hookType string
 	flag.StringVar(&hookType, "hook", "", "Hook type to run (auth|cleanup|deploy)")
 
-	// .config 파일 경로 지정(기본값: /etc/certhook/config.json)
-	configFile := flag.String("config", "/etc/certhook/config.json", "NCP config file path")
+	// .config 파일 경로 지정(기본값: /etc/ncloud-certbot-hook/config.json)
+	configFile := flag.String("config", "/etc/ncloud-certbot-hook/config.json", "NCP config file path")
 
 	flag.Parse()
 
