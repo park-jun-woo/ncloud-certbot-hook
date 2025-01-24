@@ -24,9 +24,10 @@ import (
 )
 
 type Config struct {
-	AccessKey string `json:"access_key"`
-	SecretKey string `json:"secret_key"`
-	SleepTime int    `json:"sleep_time"`
+	AccessKey  string `json:"access_key"`
+	SecretKey  string `json:"secret_key"`
+	RootCAPath string `json:"root_ca_path"`
+	SleepTime  int    `json:"sleep_time"`
 }
 
 // loadConfig: .config 파일에서 NCP 액세스 정보를 불러옴
@@ -76,7 +77,6 @@ func main() {
 	keyPath := path + "/privkey.pem"
 	certPath := path + "/cert.pem"
 	chainPath := path + "/chain.pem"
-	rootPath := "/etc/ssl/certs/ISRG_Root_X1.pem"
 
 	// hookType 에 따라 분기
 	switch strings.ToLower(hookType) {
@@ -134,7 +134,7 @@ func main() {
 			log.Fatalf("Failed to read chain.pem: %v", err)
 		}
 
-		root, err := os.ReadFile(rootPath)
+		root, err := os.ReadFile(cfg.RootCAPath)
 		if err != nil {
 			log.Fatalf("Failed to read root.pem: %v", err)
 		}

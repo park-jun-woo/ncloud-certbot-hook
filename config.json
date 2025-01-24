@@ -1,5 +1,6 @@
 {
     "access_key": "YOUR_NCP_ACCESS_KEY",
     "secret_key": "YOUR_NCP_SECRET_KEY",
+    "root_ca_path": "/etc/ssl/certs/ISRG_Root_X1.pem",
     "sleep_time": 30
 }
