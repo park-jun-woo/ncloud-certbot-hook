@@ -86,7 +86,7 @@ func main() {
 			log.Println("[Error] auth-hook: CERTBOT_DOMAIN 또는 CERTBOT_VALIDATION이 비어있습니다.")
 			os.Exit(1)
 		}
-		log.Println("[Info] Running auth-hook...")
+		log.Println("[Info] Running auth-hook... %s %s", "_acme-challenge."+domain, validation)
 
 		_, _, err := GlobalDNS.SetRecord(access, "_acme-challenge."+domain, "TXT", validation, 300, true)
 		if err != nil {
