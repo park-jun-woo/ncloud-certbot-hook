@@ -37,7 +37,7 @@
 
 1. **Clone or Download** the repository:
    ```bash
-   git clone https://github.com/park-jun-woo/ncloud-certbot-hook.git
+   git clone https://parkjunwoo.com/ncloud-certbot-hook.git
    cd ncloud-certbot-hook
    ```
 
@@ -141,4 +141,4 @@ See the `LICENSE` file for full license terms.
 
 ### Feedback & Contributions
 
-Feel free to open [issues](https://github.com/park-jun-woo/ncloud-certbot-hook/issues) or submit [pull requests](https://github.com/park-jun-woo/ncloud-certbot-hook/pulls) if you encounter bugs or want to add new features. We welcome all contributions!
+Feel free to open [issues](https://parkjunwoo.com/ncloud-certbot-hook/issues) or submit [pull requests](https://parkjunwoo.com/ncloud-certbot-hook/pulls) if you encounter bugs or want to add new features. We welcome all contributions!

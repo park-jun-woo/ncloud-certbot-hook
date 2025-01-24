@@ -13,13 +13,14 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"strings"
+	"time"
 
-	"3il.app/ncloud"
-	"3il.app/ncloud-certbot-hook/hook"
+	"parkjunwoo.com/ncloud-sdk-go/services"
+	"parkjunwoo.com/ncloud-sdk-go/services/Networking/GlobalDNS"
+	"parkjunwoo.com/ncloud-sdk-go/services/Security/CertificateManager"
 )
 
 type Config struct {
@@ -59,7 +60,7 @@ func main() {
 		log.Fatalf("설정 파일 로드 실패: %v", err)
 	}
 
-	access := &ncloud.Access{
+	access := &services.Access{
 		AccessKey: cfg.AccessKey,
 		SecretKey: cfg.SecretKey,
 	}
@@ -71,8 +72,11 @@ func main() {
 	//   CERTBOT_DOMAIN, CERTBOT_CERT_PATH, CERTBOT_KEY_PATH, CERTBOT_FULLCHAIN_PATH, etc.
 	domain := os.Getenv("CERTBOT_DOMAIN")
 	validation := os.Getenv("CERTBOT_VALIDATION")
-	certPath := os.Getenv("CERTBOT_CERT_PATH") // 전체 인증서(leaf cert)
-	keyPath := os.Getenv("CERTBOT_KEY_PATH")   // 프라이빗 키
+	path := os.Getenv("RENEWED_LINEAGE")
+	keyPath := path + "/privkey.pem"
+	certPath := path + "/cert.pem"
+	chainPath := path + "/chain.pem"
+	rootPath := "/etc/ssl/certs/ISRG_Root_X1.pem"
 
 	// hookType 에 따라 분기
 	switch strings.ToLower(hookType) {
@@ -83,10 +87,14 @@ func main() {
 			os.Exit(1)
 		}
 		log.Println("[Info] Running auth-hook...")
-		err := hook.Auth(access, cfg.SleepTime, domain, validation)
+
+		_, _, err := GlobalDNS.SetRecord(access, domain, "TXT", validation, 300, true)
 		if err != nil {
 			log.Fatalf("TXT 레코드 생성 실패: %v", err)
 		}
+
+		time.Sleep(time.Duration(cfg.SleepTime) * time.Second)
+
 		log.Println("[Info] auth-hook 완료")
 
 	case "cleanup":
@@ -96,7 +104,8 @@ func main() {
 			os.Exit(1)
 		}
 		log.Println("[Info] Running cleanup-hook...")
-		err := hook.Cleanup(access, domain, validation)
+
+		err := GlobalDNS.DeleteRecord(access, domain, "TXT", "")
 		if err != nil {
 			log.Fatalf("TXT 레코드 삭제 실패: %v", err)
 		}
@@ -105,15 +114,41 @@ func main() {
 	case "deploy":
 		// 3) 인증서가 발급/갱신된 후 -> NCP Certificate Manager에 등록
 		if domain == "" || certPath == "" || keyPath == "" {
-			log.Println("[Error] deploy-hook: CERTBOT_DOMAIN, CERTBOT_CERT_PATH 또는 CERTBOT_KEY_PATH가 비어있습니다.")
+			log.Println("[Error] deploy-hook: CERTBOT_DOMAIN이이 비어있습니다.")
 			os.Exit(1)
 		}
 		log.Println("[Info] Running deploy-hook...")
-		certNo, err := hook.Deploy(access, domain, certPath, keyPath)
+
+		key, err := os.ReadFile(keyPath)
+		if err != nil {
+			log.Fatalf("Failed to read private.pem: %v", err)
+		}
+
+		cert, err := os.ReadFile(certPath)
+		if err != nil {
+			log.Fatalf("Failed to read cert.pem: %v", err)
+		}
+
+		chain, err := os.ReadFile(chainPath)
+		if err != nil {
+			log.Fatalf("Failed to read chain.pem: %v", err)
+		}
+
+		root, err := os.ReadFile(rootPath)
+		if err != nil {
+			log.Fatalf("Failed to read root.pem: %v", err)
+		}
+
+		// Convert PEM contents to strings
+		keyString := string(key)
+		certString := string(cert)
+		chainString := string(chain)
+		rootstring := string(root)
+
+		_, err = CertificateManager.CreateExternalCertificate(access, domain, keyString, certString, chainString, rootstring)
 		if err != nil {
 			log.Fatalf("NCP Certificate Manager 등록 실패: %v", err)
 		}
-		fmt.Printf("NCP Certificate No: %d\n", certNo)
 		log.Println("[Info] deploy-hook 완료")
 
 	default:
