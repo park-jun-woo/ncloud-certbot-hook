@@ -88,7 +88,7 @@ func main() {
 		}
 		log.Println("[Info] Running auth-hook...")
 
-		_, _, err := GlobalDNS.SetRecord(access, domain, "TXT", validation, 300, true)
+		_, _, err := GlobalDNS.SetRecord(access, "_acme-challenge."+domain, "TXT", validation, 300, true)
 		if err != nil {
 			log.Fatalf("TXT 레코드 생성 실패: %v", err)
 		}
@@ -105,7 +105,7 @@ func main() {
 		}
 		log.Println("[Info] Running cleanup-hook...")
 
-		err := GlobalDNS.DeleteRecord(access, domain, "TXT", "")
+		err := GlobalDNS.DeleteRecord(access, "_acme-challenge."+domain, "TXT", "")
 		if err != nil {
 			log.Fatalf("TXT 레코드 삭제 실패: %v", err)
 		}
