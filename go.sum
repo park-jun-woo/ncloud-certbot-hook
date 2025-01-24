@@ -1,2 +1,4 @@
+golang.org/x/net v0.34.0 h1:Mb7Mrk043xzHgnRM88suvJFwzVrRfHEHJEl5/71CKw0=
+golang.org/x/net v0.34.0/go.mod h1:di0qlW3YNM5oh6GqDGQr92MyTozJPmybPK4Ev/Gm31k=
 parkjunwoo.com/ncloud-sdk-go v0.0.0-20250124081508-a970ac3d51d4 h1:7oT3rKCrMglLn4xlf5d5Fdwvjigq+S1m4gKYBNwcqXs=
 parkjunwoo.com/ncloud-sdk-go v0.0.0-20250124081508-a970ac3d51d4/go.mod h1:En2mSvxxbI6VeU6GS23hKmD0rCOV1WFPlVCtEzWf2JY=
