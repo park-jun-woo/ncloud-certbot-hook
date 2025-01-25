@@ -113,10 +113,15 @@ func main() {
 
 	case "deploy":
 		// 3) 인증서가 발급/갱신된 후 -> NCP Certificate Manager에 등록
-		if domain == "" {
-			log.Println("[Error] deploy-hook: CERTBOT_DOMAIN이이 비어있습니다.")
-			os.Exit(1)
-		}
+		/*
+			if domain == "" {
+				log.Println("[Error] deploy-hook: CERTBOT_DOMAIN이이 비어있습니다.")
+				os.Exit(1)
+			}
+		*/
+		log.Println(path)
+		os.Exit(1)
+
 		log.Println("[Info] Running deploy-hook...")
 
 		key, err := os.ReadFile(keyPath)
