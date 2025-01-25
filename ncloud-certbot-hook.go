@@ -119,8 +119,8 @@ func main() {
 				os.Exit(1)
 			}
 		*/
-		log.Println(path)
-		os.Exit(1)
+		domain = strings.ReplaceAll(path, "/etc/letsencrypt/live/", "")
+		log.Println(path, domain)
 
 		log.Println("[Info] Running deploy-hook...")
 
