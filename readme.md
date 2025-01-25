@@ -104,14 +104,7 @@ sudo chmod 600 /etc/ncloud-certbot-hook/config.json
 2. **Edit your Certbot command** (for DNS-01 challenges), for example:
 
 ```bash
-sudo certbot certonly \
-  --manual \
-  --preferred-challenges dns \
-  --manual-auth-hook "/usr/local/bin/ncloud-certbot-hook --hook=auth" \
-  --manual-cleanup-hook "/usr/local/bin/ncloud-certbot-hook --hook=cleanup" \
-  --deploy-hook "/usr/local/bin/ncloud-certbot-hook --hook=deploy" \
-  --non-interactive --agree-tos --manual-public-ip-logging-ok \
-  -d example.com
+sudo ncertbot -d example.com
 ```
 
 - `--manual-auth-hook`: Invokes **ncloud-certbot-hook** with `--hook=auth`, which creates a TXT record in NCP Global DNS.  
