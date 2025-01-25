@@ -12,6 +12,7 @@ install:
 	sudo mv $(BINARY_NAME) $(BUILD_PATH)/
 	sudo chmod +x $(BUILD_PATH)/$(BINARY_NAME)
 	sudo mv ncertbot $(BUILD_PATH)/
+	sudo chmod +x $(BUILD_PATH)/ncertbot
 
 config:
 	@if [ ! -d "$(CONFIG_PATH)" ]; then sudo mkdir -p $(CONFIG_PATH); fi
