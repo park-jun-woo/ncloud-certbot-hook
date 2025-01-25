@@ -130,13 +130,7 @@ Make sure the **paths** match your actual binary location and that your **config
 
 - **Request certificate**:
   ```bash
-  sudo certbot certonly \
-    --manual \
-    --preferred-challenges dns \
-    --manual-auth-hook "/usr/local/bin/ncloud-certbot-hook --hook=auth" \
-    --manual-cleanup-hook "/usr/local/bin/ncloud-certbot-hook --hook=cleanup" \
-    --deploy-hook "/usr/local/bin/ncloud-certbot-hook --hook=deploy" \
-    -d yourdomain.com -d www.yourdomain.com
+  sudo ncertbot -d yourdomain.com -d www.yourdomain.com
   ```
   Follow any on-screen instructions if necessary (`--non-interactive` can skip user prompts).
 
